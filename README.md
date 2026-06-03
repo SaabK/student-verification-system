@@ -219,5 +219,3 @@ This project helped me gain hands-on experience with:
 ## Author
 
 Ali Bin Naseer
-
-First Semester ICT Project

@@ -218,4 +218,5 @@ This project helped me gain hands-on experience with:
 
 ## Author
 
-Ali Bin Naseer
+- Ali Bin Naseer
+- Abdul Dayyan

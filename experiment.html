@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>3D Pandemic Simulation</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            body {
+                font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                overflow: hidden;
+                color: white;
+            }
+
+            #container {
+                width: 100vw;
+                height: 100vh;
+                position: relative;
+            }
+
+            #info-panel {
+                position: absolute;
+                top: 20px;
+                left: 20px;
+                background: rgba(0, 0, 0, 0.7);
+                backdrop-filter: blur(10px);
+                padding: 25px;
+                border-radius: 15px;
+                z-index: 100;
+                min-width: 280px;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            }
+
+            #info-panel h2 {
+                margin-bottom: 15px;
+                font-size: 24px;
+                color: #fff;
+                text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+            }
+
+            .stat {
+                display: flex;
+                justify-content: space-between;
+                margin: 10px 0;
+                font-size: 16px;
+                align-items: center;
+            }
+
+            .stat-label {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .stat-dot {
+                width: 12px;
+                height: 12px;
+                border-radius: 50%;
+                display: inline-block;
+                box-shadow: 0 0 10px currentColor;
+            }
+
+            .stat-value {
+                font-weight: bold;
+                font-size: 18px;
+            }
+
+            #controls {
+                position: absolute;
+                bottom: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: rgba(0, 0, 0, 0.7);
+                backdrop-filter: blur(10px);
+                padding: 20px 30px;
+                border-radius: 15px;
+                z-index: 100;
+                display: flex;
+                gap: 15px;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            }
+
+            button {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                border: none;
+                color: white;
+                padding: 12px 24px;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 14px;
+                font-weight: bold;
+                transition: all 0.3s ease;
+                box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            }
+
+            button:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+            }
+
+            button:active {
+                transform: translateY(0);
+            }
+
+            button.active {
+                background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            }
+
+            #timeline {
+                position: absolute;
+                top: 20px;
+                right: 20px;
+                background: rgba(0, 0, 0, 0.7);
+                backdrop-filter: blur(10px);
+                padding: 20px;
+                border-radius: 15px;
+                z-index: 100;
+                min-width: 250px;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            }
+
+            #timeline h3 {
+                margin-bottom: 10px;
+                font-size: 18px;
+            }
+
+            .timeline-event {
+                margin: 8px 0;
+                padding: 8px;
+                background: rgba(255, 255, 255, 0.1);
+                border-radius: 5px;
+                font-size: 13px;
+                opacity: 0.5;
+                transition: all 0.3s ease;
+            }
+
+            .timeline-event.active {
+                opacity: 1;
+                background: rgba(102, 126, 234, 0.3);
+                box-shadow: 0 0 15px rgba(102, 126, 234, 0.5);
+            }
+
+            #day-counter {
+                font-size: 48px;
+                font-weight: bold;
+                text-align: center;
+                margin-bottom: 10px;
+                text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+            }
+        </style>
+    </head>
+    <body>
+        <div id="container"></div>
+
+        <div id="info-panel">
+            <h2>📊 Population Stats</h2>
+            <div id="day-counter">Day 0</div>
+            <div class="stat">
+                <span class="stat-label">
+                    <span class="stat-dot" style="background: #4ecdc4"></span>
+                    Susceptible
+                </span>
+                <span class="stat-value" id="susceptible">297</span>
+            </div>
+            <div class="stat">
+                <span class="stat-label">
+                    <span class="stat-dot" style="background: #ff6b6b"></span>
+                    Infected
+                </span>
+                <span class="stat-value" id="infected">3</span>
+            </div>
+            <div class="stat">
+                <span class="stat-label">
+                    <span class="stat-dot" style="background: #95e1d3"></span>
+                    Recovered
+                </span>
+                <span class="stat-value" id="recovered">0</span>
+            </div>
+            <div class="stat">
+                <span class="stat-label">
+                    <span class="stat-dot" style="background: #a78bfa"></span>
+                    Vaccinated
+                </span>
+                <span class="stat-value" id="vaccinated">0</span>
+            </div>
+            <div class="stat">
+                <span class="stat-label">
+                    <span class="stat-dot" style="background: #374151"></span>
+                    Deaths
+                </span>
+                <span class="stat-value" id="dead">0</span>
+            </div>
+        </div>
+
+        <div id="timeline">
+            <h3>🎯 Interventions</h3>
+            <div class="timeline-event" data-day="50">
+                Day 50: Social Distancing
+            </div>
+            <div class="timeline-event" data-day="100">Day 100: Quarantine</div>
+            <div class="timeline-event" data-day="150">
+                Day 150: Vaccination
+            </div>
+        </div>
+
+        <div id="controls">
+            <button id="pauseBtn">⏸ Pause</button>
+            <button id="resetBtn">🔄 Reset</button>
+            <button id="speedBtn">⏩ 2x Speed</button>
+        </div>
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+        <script>
+            // Simulation parameters
+            const POPULATION = 300;
+            const INFECTION_RADIUS = 2;
+            const INFECTION_PROB = 0.3;
+            const RECOVERY_TIME = 50;
+            const MORTALITY_RATE = 0.02;
+
+            // Three.js setup
+            const scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x1a1a2e);
+            scene.fog = new THREE.Fog(0x1a1a2e, 10, 100);
+
+            const camera = new THREE.PerspectiveCamera(
+                60,
+                window.innerWidth / window.innerHeight,
+                0.1,
+                1000
+            );
+            camera.position.set(0, 35, 45);
+            camera.lookAt(0, 0, 0);
+
+            const renderer = new THREE.WebGLRenderer({
+                antialias: true,
+                alpha: true,
+            });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            document
+                .getElementById("container")
+                .appendChild(renderer.domElement);
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+            scene.add(ambientLight);
+
+            const mainLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            mainLight.position.set(10, 30, 10);
+            mainLight.castShadow = true;
+            mainLight.shadow.mapSize.width = 2048;
+            mainLight.shadow.mapSize.height = 2048;
+            scene.add(mainLight);
+
+            const fillLight = new THREE.PointLight(0x667eea, 1, 100);
+            fillLight.position.set(-20, 20, -20);
+            scene.add(fillLight);
+
+            const backLight = new THREE.PointLight(0x764ba2, 0.8, 100);
+            backLight.position.set(20, 10, -30);
+            scene.add(backLight);
+
+            // Ground
+            const groundGeometry = new THREE.PlaneGeometry(60, 60);
+            const groundMaterial = new THREE.MeshStandardMaterial({
+                color: 0x16213e,
+                roughness: 0.8,
+                metalness: 0.2,
+            });
+            const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            scene.add(ground);
+
+            // Grid
+            const gridHelper = new THREE.GridHelper(60, 30, 0x667eea, 0x667eea);
+            gridHelper.material.opacity = 0.2;
+            gridHelper.material.transparent = true;
+            scene.add(gridHelper);
+
+            // Person class
+            class Person {
+                constructor(x, z) {
+                    this.status = "susceptible";
+                    this.infectionTime = 0;
+                    this.quarantined = false;
+
+                    const geometry = new THREE.SphereGeometry(0.5, 16, 16);
+                    const material = new THREE.MeshStandardMaterial({
+                        color: 0x4ecdc4,
+                        emissive: 0x4ecdc4,
+                        emissiveIntensity: 0.3,
+                        roughness: 0.3,
+                        metalness: 0.7,
+                    });
+
+                    this.mesh = new THREE.Mesh(geometry, material);
+                    this.mesh.position.set(x, 0.5, z);
+                    this.mesh.castShadow = true;
+                    this.mesh.receiveShadow = true;
+                    scene.add(this.mesh);
+
+                    this.velocity = new THREE.Vector3(
+                        (Math.random() - 0.5) * 0.15,
+                        0,
+                        (Math.random() - 0.5) * 0.15
+                    );
+
+                    // Glow effect
+                    const glowGeometry = new THREE.SphereGeometry(0.7, 16, 16);
+                    const glowMaterial = new THREE.MeshBasicMaterial({
+                        color: 0x4ecdc4,
+                        transparent: true,
+                        opacity: 0.3,
+                    });
+                    this.glow = new THREE.Mesh(glowGeometry, glowMaterial);
+                    this.mesh.add(this.glow);
+                }
+
+                updateColor() {
+                    let color, emissive;
+                    switch (this.status) {
+                        case "susceptible":
+                            color = 0x4ecdc4;
+                            emissive = 0x4ecdc4;
+                            break;
+                        case "infected":
+                            color = 0xff6b6b;
+                            emissive = 0xff6b6b;
+                            break;
+                        case "recovered":
+                            color = 0x95e1d3;
+                            emissive = 0x95e1d3;
+                            break;
+                        case "vaccinated":
+                            color = 0xa78bfa;
+                            emissive = 0xa78bfa;
+                            break;
+                        case "dead":
+                            color = 0x374151;
+                            emissive = 0x000000;
+                            break;
+                    }
+                    this.mesh.material.color.setHex(color);
+                    this.mesh.material.emissive.setHex(emissive);
+                    this.glow.material.color.setHex(color);
+
+                    if (this.status === "infected") {
+                        this.mesh.scale.set(1.3, 1.3, 1.3);
+                    } else {
+                        this.mesh.scale.set(1, 1, 1);
+                    }
+                }
+
+                move() {
+                    if (this.quarantined || this.status === "dead") return;
+
+                    this.mesh.position.add(this.velocity);
+
+                    // Bounce off boundaries
+                    if (Math.abs(this.mesh.position.x) > 28) {
+                        this.velocity.x *= -1;
+                        this.mesh.position.x =
+                            Math.sign(this.mesh.position.x) * 28;
+                    }
+                    if (Math.abs(this.mesh.position.z) > 28) {
+                        this.velocity.z *= -1;
+                        this.mesh.position.z =
+                            Math.sign(this.mesh.position.z) * 28;
+                    }
+
+                    // Random direction changes
+                    if (Math.random() < 0.01) {
+                        this.velocity.x = (Math.random() - 0.5) * 0.15;
+                        this.velocity.z = (Math.random() - 0.5) * 0.15;
+                    }
+
+                    // Subtle bobbing animation
+                    this.mesh.position.y =
+                        0.5 +
+                        Math.sin(Date.now() * 0.003 + this.mesh.position.x) *
+                            0.1;
+                }
+            }
+
+            // Initialize population
+            let people = [];
+            let day = 0;
+            let paused = false;
+            let speed = 1;
+
+            function initSimulation() {
+                // Remove existing people
+                people.forEach((p) => scene.remove(p.mesh));
+                people = [];
+                day = 0;
+
+                // Create new population
+                for (let i = 0; i < POPULATION; i++) {
+                    const x = (Math.random() - 0.5) * 50;
+                    const z = (Math.random() - 0.5) * 50;
+                    people.push(new Person(x, z));
+                }
+
+                // Infect initial cases
+                for (let i = 0; i < 3; i++) {
+                    people[i].status = "infected";
+                    people[i].updateColor();
+                }
+
+                updateStats();
+            }
+
+            // Simulation logic
+            function simulate() {
+                if (paused) return;
+
+                for (let iter = 0; iter < speed; iter++) {
+                    day++;
+
+                    // Move people
+                    people.forEach((p) => p.move());
+
+                    // Check interventions
+                    if (day === 50) {
+                        // Social distancing
+                        people.forEach((p) => {
+                            p.velocity.multiplyScalar(0.3);
+                        });
+                        document
+                            .querySelector('[data-day="50"]')
+                            .classList.add("active");
+                    }
+
+                    if (day === 100) {
+                        // Quarantine
+                        document
+                            .querySelector('[data-day="100"]')
+                            .classList.add("active");
+                    }
+
+                    if (day === 150) {
+                        // Vaccination
+                        people.forEach((p) => {
+                            if (
+                                p.status === "susceptible" &&
+                                Math.random() < 0.3
+                            ) {
+                                p.status = "vaccinated";
+                                p.updateColor();
+                            }
+                        });
+                        document
+                            .querySelector('[data-day="150"]')
+                            .classList.add("active");
+                    }
+
+                    // Infection spreading
+                    const infected = people.filter(
+                        (p) => p.status === "infected"
+                    );
+                    const susceptible = people.filter(
+                        (p) => p.status === "susceptible"
+                    );
+
+                    infected.forEach((inf) => {
+                        inf.infectionTime++;
+
+                        if (day >= 100 && inf.infectionTime > 5) {
+                            inf.quarantined = true;
+                        }
+
+                        // Recovery or death
+                        if (inf.infectionTime >= RECOVERY_TIME) {
+                            if (Math.random() < MORTALITY_RATE) {
+                                inf.status = "dead";
+                                inf.mesh.position.y = 0.2;
+                            } else {
+                                inf.status = "recovered";
+                            }
+                            inf.infectionTime = 0;
+                            inf.quarantined = false;
+                            inf.updateColor();
+                        }
+
+                        // Spread infection
+                        if (!inf.quarantined) {
+                            susceptible.forEach((sus) => {
+                                const dist = inf.mesh.position.distanceTo(
+                                    sus.mesh.position
+                                );
+                                if (
+                                    dist < INFECTION_RADIUS &&
+                                    Math.random() < INFECTION_PROB
+                                ) {
+                                    sus.status = "infected";
+                                    sus.updateColor();
+                                }
+                            });
+                        }
+                    });
+                }
+
+                updateStats();
+            }
+
+            function updateStats() {
+                const stats = {
+                    susceptible: 0,
+                    infected: 0,
+                    recovered: 0,
+                    vaccinated: 0,
+                    dead: 0,
+                };
+
+                people.forEach((p) => stats[p.status]++);
+
+                document.getElementById(
+                    "day-counter"
+                ).textContent = `Day ${day}`;
+                document.getElementById("susceptible").textContent =
+                    stats.susceptible;
+                document.getElementById("infected").textContent =
+                    stats.infected;
+                document.getElementById("recovered").textContent =
+                    stats.recovered;
+                document.getElementById("vaccinated").textContent =
+                    stats.vaccinated;
+                document.getElementById("dead").textContent = stats.dead;
+            }
+
+            // Animation loop
+            let frameCount = 0;
+            function animate() {
+                requestAnimationFrame(animate);
+
+                frameCount++;
+                if (frameCount % 3 === 0) {
+                    simulate();
+                }
+
+                // Rotate camera slowly
+                camera.position.x = Math.sin(Date.now() * 0.0001) * 45;
+                camera.position.z = Math.cos(Date.now() * 0.0001) * 45;
+                camera.lookAt(0, 0, 0);
+
+                renderer.render(scene, camera);
+            }
+
+            // Controls
+            document
+                .getElementById("pauseBtn")
+                .addEventListener("click", function () {
+                    paused = !paused;
+                    this.textContent = paused ? "▶ Play" : "⏸ Pause";
+                });
+
+            document
+                .getElementById("resetBtn")
+                .addEventListener("click", function () {
+                    initSimulation();
+                    document
+                        .querySelectorAll(".timeline-event")
+                        .forEach((e) => e.classList.remove("active"));
+                });
+
+            document
+                .getElementById("speedBtn")
+                .addEventListener("click", function () {
+                    speed = speed === 1 ? 2 : speed === 2 ? 4 : 1;
+                    this.textContent =
+                        speed === 1
+                            ? "⏩ 2x Speed"
+                            : speed === 2
+                            ? "⏩ 4x Speed"
+                            : "⏩ 1x Speed";
+                });
+
+            // Handle window resize
+            window.addEventListener("resize", function () {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+
+            // Start simulation
+            initSimulation();
+            animate();
+        </script>
+    </body>
+</html>
